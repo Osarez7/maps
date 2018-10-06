@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -20,11 +21,12 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback  , LocationListener{
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private static final int REQUEST_LOCATION_PERMISSION = 100;
     private GoogleMap mMap;
     public static final String TAG = MapsActivity.class.getSimpleName();
+    private Location location;
     private LocationManager locationManager;
 
     @Override
@@ -33,7 +35,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -47,7 +49,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     REQUEST_LOCATION_PERMISSION);
             return;
         } else {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+            location  = locationManager
+                    .getLastKnownLocation(locationManager.getBestProvider(new Criteria(), true));
+            setupLocation(location);
         }
     }
 
@@ -58,8 +62,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if(requestCode == REQUEST_LOCATION_PERMISSION){
             if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+                location  = locationManager
+                        .getLastKnownLocation(locationManager.getBestProvider(new Criteria(), true));
+                setupLocation(location);
             }
+        }
+    }
+
+    private void setupLocation(Location location) {
+        if(mMap != null && location != null){
+            LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+            mMap.addMarker(new MarkerOptions().position(currentLocation).title("My location"));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
         }
     }
 
@@ -77,27 +91,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Log.d(TAG, "onMapReady: ");
         mMap = googleMap;
+        setupLocation(location);
     }
 
-    @Override
-    public void onLocationChanged(Location location) {
-        LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-        mMap.addMarker(new MarkerOptions().position(currentLocation).title("My location"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        Log.d("Latitude", "disable");
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        Log.d("Latitude", "enable");
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        Log.d("Latitude", "status");
-    }
 }
